@@ -2,14 +2,19 @@
 ___
 
 ![California with FIPS](https://raw.githubusercontent.com/David-Howell/zillow-tricounty-2017/main/california_fips_codes.png "California with FIPS")
+<a id="INDEX"></a>
 
-|**Index:**|  |  |
-|---|---|---|
-| |**Links:**|**Description:**|
-|---|---|---|
-| |[__PLANNING__](#PLANNING)| The Planning stages explained|
-| |[__MVP__](#MVP)| The MVP steps and process - DUE 2022_09_08_12:00:00|
-| |[__ITERATION 1__](#ITTER_1)
+<div class="alert alert-block alert-info">
+</div>
+
+***
+## **INDEX:**
+___
+|**Links:**|**Description:**|
+|---|---|
+|[__PLANNING__](#PLANNING)| The Planning stages explained|
+|[__MVP__](#MVP)| The MVP steps and process - DUE 2022_09_08_12:00:00|
+|[__ITERATION 1__](#ITTER_1)
 <br><br>
 
 <a id="PLANNING"></a>
@@ -20,7 +25,7 @@ ___
 ***
 
 
-## Planning:<br>
+## PLANNING:<br>
 
 <a id="MVP"></a>
 
