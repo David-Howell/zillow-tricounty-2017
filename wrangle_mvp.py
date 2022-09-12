@@ -28,6 +28,12 @@ warnings.filterwarnings("ignore")
 <  HR (HUMAN READABLE)  >
 <  HISTS  >
 <  SLICER  >
+<  SCALE_DATA  >
+<  BASELINES  >
+<  MODEL_SETS  >
+<  MAKE_METRICS  >
+<  MAKE_MODELS  >
+<  GET_MODELS  >
 '''
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  GET_ZILLOW_MVP  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
@@ -182,7 +188,7 @@ def split_data_continuous(df, rand_st=123, with_baseline=False):
     return train, validate, test
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  BOXPLOTS  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-def boxplots(df, excluding=''):
+def boxplots(df, excluding=False):
     '''
     
     '''

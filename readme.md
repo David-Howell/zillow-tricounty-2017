@@ -34,7 +34,7 @@ ___
 
 ***
 
-### MVP by Thursday @ Noon 2022_09_08<br>
+### MVP<br>
 
 1. Gather Data (ETL):<br>
   - Write SQL Query JOIN `properties_2017`, `predictions_2017` <br>ON `parcelid` WHERE `transactiondate` >= `2017-01-01` AND < `2018-01-01`
@@ -89,3 +89,7 @@ ___
 1. Repaet the above process, but with MORE!!
   - Already thinking about, zips, lat/long, block codes... Get back to the DataBasics
   
+## Data Dictionary
+
+| Feature Name | Decription |
+|---|---|
