@@ -109,18 +109,27 @@ def get_zillow_mvp():
 
 def clean_zillow():
     '''
-    
+    No parameters!
+    ----------------
+
+    This will output a clean dataframe of zillow information with outliers removed
+    also, why model based on houses less than $100,000.00 or more than $1M 
+    and we will reset the index, which will allow us to use the boxplots function for explore
     '''
-
+# Use get_zillow_mvp
     df= get_zillow_mvp()
-
+# Set the cols to everything but 'date'
     cols = [col for col in df.columns if col not in ['date']]
-
+# Use remove_outliers
     df = remove_outliers(df, 1.5, cols)
-
+# Limit the data to houses in the $100K - $1M range
     df = df[(df.tax_value <= 1_000_000) & (df.tax_value >= 100_000) & (df.area > 1000)]
-
+# Set the cols to df
     df = df[cols]
+# Reset the index
+    df = df.reset_index()
+    # drop the resulting 'index' column
+    df = df.drop(columns='index')
 
     return df
 
@@ -131,8 +140,10 @@ def clean_zillow():
 def split_data_continuous(df, rand_st=123, with_baseline=False):
     '''
     Takes in: a pd.DataFrame()
-          and a column to stratify by  ;dtype(str)
           and a random state           ;if no random state is specifed defaults to [123]
+          and a boolean value for with_baseline (=False) 
+            if True: the baselines are computed for mean, median, mode, 
+            the mean of those, the harmonic mean of those, and the harmonic mean of all predictions
           
       return: train, validate, test    ;subset dataframes
     '''
@@ -146,7 +157,7 @@ def split_data_continuous(df, rand_st=123, with_baseline=False):
     print(f'Train: {train.shape}')
     print(f'Validate: {validate.shape}')
     print(f'Test: {test.shape}')
-
+# here we add the if with_baselines to add all the possible baselines
     if with_baseline:
         baselines = ['mean_preds',
         'median_preds',
@@ -154,12 +165,12 @@ def split_data_continuous(df, rand_st=123, with_baseline=False):
         'm_mmm_preds',
         'hm_mmm_preds',
         'h_m_total_preds']
-        
+        # Use the get_baselines function
         train, validate, test = get_baselines(train, validate, test)
-
+# Set the best basline RMSE to 1M so that it's above any reasonable baseline and baseline to none
         best_rmse = 1_000_000_000
         best_baseline = None
-
+# test the RSME of each baseline and compare; sticking with only the lowest RSME
         for i in baselines:
             rmse_train = mean_squared_error(train.tax_value, train[i]) ** 0.5
             rmse_validate = mean_squared_error(validate.tax_value, validate[i]) ** 0.5
@@ -168,17 +179,17 @@ def split_data_continuous(df, rand_st=123, with_baseline=False):
                 best_rmse = rmse_train
                 best_baseline = i
                 in_out = rmse_train/rmse_validate
-
+# round the baseline values for human readability
         our_baseline = round(train[best_baseline].values[0])
-
+# add to our dataframe
         train['baseline'] = our_baseline
-
+# drop all the baselines we tested
         train = train.drop(columns= baselines)
-        
+# set the validate set with baseline and drop the others
         validate['baseline'] = our_baseline
 
         validate = validate.drop(columns= baselines)
-        
+# And the same for test
         test['baseline'] = our_baseline
 
         test = test.drop(columns= baselines)
@@ -190,11 +201,11 @@ def split_data_continuous(df, rand_st=123, with_baseline=False):
 
 def boxplots(df, excluding=False):
     '''
-    
+    make boxplots from all the columns in a dataframe, excluding anything you want to exclude
     '''
-    
+    # Set the cols for use in creating the boxplots
     cols = [col for col in df.columns if col not in [excluding]]
-
+# set the figure and for loop to plot each column
     plt.figure(figsize=(16, 20))
     for i, col in enumerate(cols):
 
@@ -285,7 +296,7 @@ def hr(n, suffix='', places=2, prefix='$'):
 def hists(df, exclude='', granularity=5): 
 
     '''
-    
+    Make histograms of all the columns in a dataframe, except any you want to exclude, and you can set the number of bins with granularity
     '''   
     # Set figure size. Went with 4x for the width:height to display 4 graphs... future version could have these set be the DataFrame columns used
     plt.figure(figsize=(16, 4))
@@ -324,13 +335,31 @@ Houses in $ Range > {hr(df.tax_value.min())} - {hr(df.tax_value.max())} <',
     plt.show()
 
 
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  heatmaps  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+def heatmaps(train):
+    # create the correlation matrix using pandas .corr()
+    zill_corr = train.corr()
+
+    # pass my correlation matrix to a heatmap
+    kwargs = {'alpha':.9,
+            'linewidth':3, 
+            'linestyle':'-',
+            'linecolor':'black'}
+
+    sns.heatmap(zill_corr, cmap='Purples', annot=True,
+            mask=np.triu(zill_corr), **kwargs)
+    plt.show()
+
+
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  SLICER  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 def slicer(df, min=0, max=1_000_000, step=50_000):
     '''
     SLICER:
     ------------------------------
-    Takes in a DataFrame and provides Histograms of each 
+    Takes in a DataFrame and provides Histograms of each slice of tax_value
+    the min max and step size of the bins can be set.
+    also the standard deviation of each slice is output
     '''
     
     for i in range(min, max, step):
@@ -355,7 +384,7 @@ def slicer(df, min=0, max=1_000_000, step=50_000):
 
 def scale_data(train, validate, test):
     '''
-    
+    scales the data using MinMaxScaler from SKlearn
     '''
 #     Remember incoming columns and index numbers to output DataFrames
     cols = train.columns
@@ -463,22 +492,22 @@ def model_sets(train, validate, test, scale_X_cols=True, target='tax_value'):
 
     '''
 
-    # 
+    # use forloop to get columns for X_cols exckuding the target and the baseline
     X_cols = []
     for i in train.columns:
         if i not in [target, 'baseline']:
             X_cols.append(i)
     y_cols = [target, 'baseline']
 
-    # 
+    # print what they are for the users reference
     print(f'\nX_cols = {X_cols}\n\ny_cols = {y_cols}\n\n')
 
-    # 
+    # set the X_ and y_ for train, validate and test
     X_train, y_train = train[X_cols], train[y_cols]
     X_validate, y_validate = validate[X_cols], validate[y_cols]
     X_test, y_test = test[X_cols], test[y_cols]
 
-    # 
+    # if scale_X_cols is true then we send all of our X_ columns trhough the scale_data function
     if scale_X_cols:
         X_train, X_validate, X_test = scale_data(X_train, X_validate, X_test)
 
@@ -504,7 +533,7 @@ def make_metrics(zillow, target='tax_value'):
 
     rmse_v = mean_squared_error(zillow[4][target], zillow[4].baseline) ** (1/2)
     r2_v = explained_variance_score(zillow[4].tax_value, zillow[4].baseline)
-
+# Setup the metric dataframe
     metric_df = pd.DataFrame(data=[{
         'model': 'baseline',
         'rmse_train': hr(rmse),
@@ -517,6 +546,20 @@ def make_metrics(zillow, target='tax_value'):
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  MAKE_MODELS  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 def make_models(zillow, target='tax_value'):
+    '''
+    Makes trained models from the X_train and y_train sets and evaluates them on validation sets
+
+    models include:
+                    Linear Regression
+                    Lasso Lars
+                    GLM (Tweedie Reg)
+
+    Returns:
+    -----------------
+    a list of the X_ y_ dataframes, the models in a dataframe, and the metrics for the models in a dataframe
+    zillow, models, metric_df
+
+    '''
     
     # Name and make models
     models = pd.DataFrame(\
@@ -570,20 +613,32 @@ def make_models(zillow, target='tax_value'):
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  GET_MODELS  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
 def get_models():
+    '''
+    No Parameters!
+    -----------------
+    just run the function saving the three outputs
+
+    outputs a list of the X_ y_ dataframes, the models in a dataframe, 
+    and the metrics for the models in a dataframe
+
+    zillow, models, metric_df 
+    '''
+    # grab the clean data
     df = clean_zillow()
-    
+    # split it
     train, validate, test = split_data_continuous(df, with_baseline=True)
-    
+    # get the model sets
     X_train, y_train, X_validate, y_validate, X_test, y_test = model_sets(train, validate, test)
-    
+    # make the list of sets to put into the models
     zillow = [df, X_train, y_train, X_validate, y_validate, X_test, y_test]
-    
+    # Use the make_models function
     zillow, models, metric_df = make_models(zillow)
-    
+    # output the results
     return zillow, models, metric_df
 
 
-#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  J/K HAVERSINE  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  HAVERSINE  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+
 
 from math import radians, cos, sin, asin, sqrt
 
@@ -609,3 +664,29 @@ def haversine(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
     c = 2 * asin(sqrt(a))
     r = 6371 # Radius of earth in kilometers
     return c * r
+
+#~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~<  evaluate  >~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
+def evaluate(y_validate):
+    '''
+    evaluate the models on the y_validate set 
+    '''
+    # y_validate.head()
+    plt.figure(figsize=(16,8))
+    plt.plot(y_validate.tax_value, y_validate.baseline, alpha=1, color="gray", label='_nolegend_')
+    plt.annotate("Baseline: Predict Using Mean", (16, 9.5))
+    plt.plot(y_validate.tax_value, y_validate.tax_value, alpha=.5, color="blue", label='_nolegend_')
+    plt.annotate("The Ideal Line: Predicted = Actual", (.5, 3.5), rotation=15.5)
+
+    plt.scatter(y_validate.tax_value, y_validate['Linear Regression'], 
+                alpha=.2, color="red", s=100, label="Model: LinearRegression")
+    plt.scatter(y_validate.tax_value, y_validate['GLM (Tweedie Reg)'], 
+                alpha=.2, color="yellow", s=100, label="Model: TweedieRegressor")
+    plt.scatter(y_validate.tax_value, y_validate['Lasso Lars'], 
+                alpha=.2, color="green", s=100, label="Model: Lasso Lars")
+    plt.legend()
+    plt.xlabel("Actual Tax Value")
+    plt.ylabel("Predicted Tax Value")
+    plt.title("Where are predictions more extreme? More modest?")
+    plt.annotate("The polynomial model appears to overreact to noise", (2.0, -10))
+    plt.annotate("The OLS model (LinearRegression)\n appears to be most consistent", (15.5, 3))
+    plt.show()
